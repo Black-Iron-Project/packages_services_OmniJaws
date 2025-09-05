@@ -17,7 +17,6 @@
  */
 package org.omnirom.omnijaws;
 
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,6 +30,7 @@ public class WeatherActivity extends BaseActivity implements OmniJawsClient.Omni
     private static final String TAG = "WeatherActivity";
     private static final boolean DEBUG = false;
     private DetailedWeatherView mDetailedView;
+    private OmniJawsClient mWeatherClient;
 
     /** The background colors of the app, it changes thru out the day to mimic the sky. **/
     public static final String[] BACKGROUND_SPECTRUM = { "#212121", "#27232e", "#2d253a",
@@ -46,37 +46,33 @@ public class WeatherActivity extends BaseActivity implements OmniJawsClient.Omni
         mDetailedView = findViewById(R.id.weather_forecast);
         View settings = findViewById(R.id.settings);
         settings.setOnClickListener(v -> {
-            startActivity(getSettingsIntent());
+            startActivity(mWeatherClient.getSettingsIntent());
         });
         View statusView = findViewById(R.id.status_view);
         statusView.setOnClickListener(v -> {
-            startActivity(getSettingsIntent());
+            startActivity(mWeatherClient.getSettingsIntent());
         });
         View refresh = findViewById(R.id.refresh);
         refresh.setOnClickListener(v -> {
             mDetailedView.forceRefresh();
         });
+        mWeatherClient = new OmniJawsClient(this);
         mDetailedView.setActivity(this);
+        mDetailedView.setWeatherClient(mWeatherClient);
         updateHourColor();
-    }
-
-    public Intent getSettingsIntent() {
-        Intent settings = new Intent(Intent.ACTION_MAIN)
-                .setClassName(OmniJawsClient.SERVICE_PACKAGE, OmniJawsClient.SERVICE_PACKAGE + ".SettingsActivity");
-        return settings;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-         OmniJawsClient.get().addObserver(this, this);
+         mWeatherClient.addObserver(this);
          queryAndUpdateWeather();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        OmniJawsClient.get().removeObserver(this, this);
+        mWeatherClient.removeObserver(this);
     }
 
     @Override
@@ -92,8 +88,8 @@ public class WeatherActivity extends BaseActivity implements OmniJawsClient.Omni
     }
 
     private void queryAndUpdateWeather() {
-        OmniJawsClient.get().queryWeather(this);
-        mDetailedView.updateWeatherData(OmniJawsClient.get().getWeatherInfo());
+        mWeatherClient.queryWeather();
+        mDetailedView.updateWeatherData(mWeatherClient.getWeatherInfo());
     }
 
     private int getCurrentHourColor() {

@@ -180,21 +180,22 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
             Log.i(TAG, "updateWeather " + appWidgetId);
         }
 
-        OmniJawsClient.get().queryWeather(context);
+        OmniJawsClient weatherClient = new OmniJawsClient(context.getApplicationContext());
+        weatherClient.queryWeather();
 
         appWidgetManager.updateAppWidget(appWidgetId, createRemoteViews(
-                context, appWidgetManager, appWidgetId));
+                context, appWidgetManager, appWidgetId, weatherClient));
     }
 
     private static void setupRemoteView(Context context, AppWidgetManager appWidgetManager,
-                                        int appWidgetId, RemoteViews widget,
+                                        int appWidgetId, RemoteViews widget, OmniJawsClient weatherClient,
                                         boolean withForecast, int bgTrans) {
         if (!Config.isEnabled(context)) {
             showError(context, appWidgetManager, appWidgetId, EXTRA_ERROR_DISABLED, widget);
             return;
         }
 
-        OmniJawsClient.WeatherInfo weatherData = OmniJawsClient.get().getWeatherInfo();
+        OmniJawsClient.WeatherInfo weatherData = weatherClient.getWeatherInfo();
 
         initWidget(widget);
         widget.setOnClickPendingIntent(R.id.weather_data, getWeatherActivityIntent(context));
@@ -216,7 +217,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         String forecastData = getWeatherDataString(weatherData.forecasts.get(0).low,
                 weatherData.forecasts.get(0).high, weatherData.tempUnits);
 
-        Drawable d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.forecasts.get(0).conditionCode);
+        Drawable d = weatherClient.getWeatherConditionImage(weatherData.forecasts.get(0).conditionCode);
         BitmapDrawable bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.forecast_image_0, bd.getBitmap());
         widget.setTextViewText(R.id.forecast_text_0, dayShort);
@@ -226,7 +227,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         dayShort = sdf.format(new Date(cal.getTimeInMillis()));
         forecastData = getWeatherDataString(weatherData.forecasts.get(1).low,
                 weatherData.forecasts.get(1).high, weatherData.tempUnits);
-        d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.forecasts.get(1).conditionCode);
+        d = weatherClient.getWeatherConditionImage(weatherData.forecasts.get(1).conditionCode);
         bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.forecast_image_1, bd.getBitmap());
         widget.setTextViewText(R.id.forecast_text_1, dayShort);
@@ -236,7 +237,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         dayShort = sdf.format(new Date(cal.getTimeInMillis()));
         forecastData = getWeatherDataString(weatherData.forecasts.get(2).low,
                 weatherData.forecasts.get(2).high, weatherData.tempUnits);
-        d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.forecasts.get(2).conditionCode);
+        d = weatherClient.getWeatherConditionImage(weatherData.forecasts.get(2).conditionCode);
         bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.forecast_image_2, bd.getBitmap());
         widget.setTextViewText(R.id.forecast_text_2, dayShort);
@@ -246,7 +247,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         dayShort = sdf.format(new Date(cal.getTimeInMillis()));
         forecastData = getWeatherDataString(weatherData.forecasts.get(3).low,
                 weatherData.forecasts.get(3).high, weatherData.tempUnits);
-        d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.forecasts.get(3).conditionCode);
+        d = weatherClient.getWeatherConditionImage(weatherData.forecasts.get(3).conditionCode);
         bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.forecast_image_3, bd.getBitmap());
         widget.setTextViewText(R.id.forecast_text_3, dayShort);
@@ -256,14 +257,14 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         dayShort = sdf.format(new Date(cal.getTimeInMillis()));
         forecastData = getWeatherDataString(weatherData.forecasts.get(4).low,
                 weatherData.forecasts.get(4).high, weatherData.tempUnits);
-        d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.forecasts.get(4).conditionCode);
+        d = weatherClient.getWeatherConditionImage(weatherData.forecasts.get(4).conditionCode);
         bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.forecast_image_4, bd.getBitmap());
         widget.setTextViewText(R.id.forecast_text_4, dayShort);
         widget.setTextViewText(R.id.forecast_data_4, forecastData);
 
         String currentData = getWeatherDataString(weatherData.temp, null, weatherData.tempUnits);
-        d = OmniJawsClient.get().getWeatherConditionImage(context, weatherData.conditionCode);
+        d = weatherClient.getWeatherConditionImage(weatherData.conditionCode);
         bd = getBitmapDrawable(context, d);
         widget.setImageViewBitmap(R.id.current_image, bd.getBitmap());
         widget.setTextViewText(R.id.current_text,
@@ -301,7 +302,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
     }
 
     public static RemoteViews createRemoteViews(Context context, AppWidgetManager appWidgetManager,
-            int appWidgetId) {
+            int appWidgetId, OmniJawsClient weatherClient) {
         if (LOGGING) {
             Log.i(TAG, "createRemoteViews");
         }
@@ -312,10 +313,8 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         int smallWidgetResId = R.layout.weather_appwidget_small_system;
         int largelWidgetResId = R.layout.weather_appwidget_large_system;
         int wideWidgetResId = R.layout.weather_appwidget_wide_system;
-        
-        String iconPack = Config.getIconPack(context);
 
-        boolean isPackOutline = iconPack != null && !iconPack.isEmpty() && iconPack.equals("org.omnirom.omnijaws.outline");
+        boolean isPackOutline = Config.getIconPack(context).equals("org.omnirom.omnijaws.outline");
 
         switch (theme) {
             case COLOR_THEME_SYSTEM:
@@ -354,13 +353,13 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         }
         RemoteViews smallView = new RemoteViews(context.getPackageName(), smallWidgetResId);
         setupRemoteView(context, appWidgetManager, appWidgetId, smallView,
-                false, bgTrans);
+                weatherClient, false, bgTrans);
         RemoteViews largeView = new RemoteViews(context.getPackageName(), largelWidgetResId);
         setupRemoteView(context, appWidgetManager, appWidgetId, largeView,
-                true, bgTrans);
+                weatherClient, true, bgTrans);
         RemoteViews wideView = new RemoteViews(context.getPackageName(), wideWidgetResId);
         setupRemoteView(context, appWidgetManager, appWidgetId, wideView,
-                true, bgTrans);
+                weatherClient, true, bgTrans);
         Map<SizeF, RemoteViews> viewMapping = new ArrayMap<>();
         viewMapping.put(new SizeF(50f, 50f), smallView);
         viewMapping.put(new SizeF(260f, 150f), largeView);
